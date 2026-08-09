@@ -121,7 +121,7 @@ function computeExpectedPayouts(board) {
 // ---- UI State ----
 let board = null; // 實際的 1~9 陣列
 let revealed = null; // boolean[9]
-let phase = "scratch"; // 'scratch' | 'choose'
+let phase = "scratch"; // 'scratch' | 'choose' | 'result'
 let scratchCount = 0; // 已翻開格數（初始1不算）
 let chosenLine = null;
 
