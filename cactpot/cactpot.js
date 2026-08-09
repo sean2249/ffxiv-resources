@@ -138,7 +138,7 @@ function initGame() {
 
   renderBoard();
   renderHint();
-  renderLines(null);
+  renderLines(computeExpectedPayouts(buildUserBoard()));
   document.getElementById("result").textContent = "";
 }
 
