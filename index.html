@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FFXIV 資源站</title>
+    <meta
+      name="description"
+      content="Final Fantasy XIV 中文資源整理，包含仙人微彩模擬器等實用工具，繁體中文台灣用語。"
+    />
+    <style>
+      :root {
+        --bg: #1a1a2e;
+        --surface: #16213e;
+        --card: #0f3460;
+        --accent: #e94560;
+        --gold: #f5a623;
+        --text: #eaeaea;
+        --muted: #888;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      header {
+        width: 100%;
+        background: var(--surface);
+        border-bottom: 2px solid var(--accent);
+        padding: 2rem;
+        text-align: center;
+      }
+
+      header h1 {
+        font-size: 2.2rem;
+        color: var(--gold);
+      }
+
+      header p {
+        color: var(--muted);
+        margin-top: 0.4rem;
+        font-size: 0.9rem;
+      }
+
+      main {
+        flex: 1;
+        width: 100%;
+        max-width: 800px;
+        padding: 2.5rem 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .section-title {
+        font-size: 1.2rem;
+        color: var(--gold);
+        border-bottom: 1px solid var(--card);
+        padding-bottom: 0.4rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 1rem;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--card);
+        border-radius: 12px;
+        padding: 1.25rem;
+        text-decoration: none;
+        color: var(--text);
+        transition: border-color 0.2s, transform 0.15s;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+
+      .card:hover {
+        border-color: var(--gold);
+        transform: translateY(-2px);
+      }
+
+      .card .icon {
+        font-size: 2rem;
+      }
+
+      .card h2 {
+        font-size: 1.05rem;
+        color: var(--gold);
+      }
+
+      .card p {
+        font-size: 0.82rem;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .badge {
+        display: inline-block;
+        background: var(--accent);
+        color: #fff;
+        font-size: 0.7rem;
+        padding: 0.1rem 0.45rem;
+        border-radius: 4px;
+        font-weight: bold;
+        width: fit-content;
+      }
+
+      footer {
+        text-align: center;
+        padding: 1rem;
+        color: var(--muted);
+        font-size: 0.78rem;
+        border-top: 1px solid var(--card);
+        width: 100%;
+      }
+
+      footer a {
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>🌵 FFXIV 資源站</h1>
+      <p>Final Fantasy XIV 中文資源整理 &mdash; 繁體中文台灣用語</p>
+    </header>
+
+    <main>
+      <section>
+        <div class="section-title">🎮 迷你遊戲工具</div>
+        <div class="card-grid">
+          <a class="card" href="cactpot/index.html">
+            <span class="icon">🎰</span>
+            <span class="badge">可用</span>
+            <h2>仙人微彩模擬器</h2>
+            <p>
+              Mini Cactpot 模擬器，自動計算每條連線的期望獎金並推薦最佳選擇。
+            </p>
+          </a>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-title">📋 關於本站</div>
+        <p style="font-size: 0.9rem; color: #ccc; line-height: 1.8">
+          本站整理 Final Fantasy XIV 各類資料與實用工具，以繁體中文台灣用語撰寫。<br />
+          目前主要提供仙人微彩（Mini Cactpot）模擬器，未來將持續新增更多資源。<br />
+          <br />
+          原始碼開放於
+          <a
+            href="https://github.com/sean2249/ffxiv-resources"
+            target="_blank"
+            rel="noopener"
+            style="color: var(--gold)"
+            >GitHub</a
+          >，歡迎貢獻。
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        本站為非官方粉絲資源站，與 Square Enix 無關。<br />
+        Final Fantasy XIV &copy; Square Enix Co., Ltd.<br />
+        <a href="https://github.com/sean2249/ffxiv-resources" target="_blank" rel="noopener"
+          >GitHub 原始碼</a
+        >
+      </p>
+    </footer>
+  </body>
+</html>
