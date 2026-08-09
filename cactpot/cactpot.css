@@ -1,0 +1,315 @@
+/* 仙人微彩模擬器 - 樣式 */
+
+:root {
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --card: #0f3460;
+  --accent: #e94560;
+  --gold: #f5a623;
+  --text: #eaeaea;
+  --muted: #888;
+  --green: #4caf50;
+  --cell-size: 90px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+header {
+  width: 100%;
+  background: var(--surface);
+  border-bottom: 2px solid var(--accent);
+  padding: 1rem 2rem;
+  text-align: center;
+}
+
+header h1 {
+  font-size: 1.8rem;
+  color: var(--gold);
+  letter-spacing: 0.05em;
+}
+
+header p {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 0.25rem;
+}
+
+nav {
+  margin-top: 0.5rem;
+}
+
+nav a {
+  color: var(--gold);
+  text-decoration: none;
+  font-size: 0.85rem;
+  margin: 0 0.5rem;
+}
+
+nav a:hover {
+  text-decoration: underline;
+}
+
+main {
+  flex: 1;
+  width: 100%;
+  max-width: 760px;
+  padding: 2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+/* ---- Board ---- */
+.board-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, var(--cell-size));
+  grid-template-rows: repeat(3, var(--cell-size));
+  gap: 8px;
+}
+
+.cell {
+  width: var(--cell-size);
+  height: var(--cell-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: bold;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  transition: transform 0.15s, background 0.2s;
+  user-select: none;
+}
+
+.cell.revealed {
+  background: var(--card);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.cell.hidden-cell {
+  background: var(--surface);
+  border-color: var(--muted);
+  color: var(--muted);
+}
+
+.cell.hidden-cell:hover {
+  border-color: var(--accent);
+  color: var(--text);
+  transform: scale(1.05);
+  cursor: pointer;
+}
+
+.cell.chosen {
+  background: #5a3800;
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 12px var(--accent);
+}
+
+/* ---- Hint ---- */
+#hint {
+  font-size: 1.1rem;
+  color: var(--text);
+  background: var(--surface);
+  padding: 0.6rem 1.4rem;
+  border-radius: 8px;
+  border: 1px solid var(--card);
+}
+
+/* ---- Payout Table ---- */
+.payout-toggle {
+  background: none;
+  border: 1px solid var(--muted);
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.payout-toggle:hover {
+  color: var(--text);
+  border-color: var(--text);
+}
+
+.payout-table-wrap {
+  width: 100%;
+}
+
+.payout-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.payout-table-wrap th,
+.payout-table-wrap td {
+  border: 1px solid var(--card);
+  padding: 0.35rem 0.7rem;
+  text-align: center;
+}
+
+.payout-table-wrap th {
+  background: var(--card);
+  color: var(--gold);
+}
+
+.payout-table-wrap tr:nth-child(even) td {
+  background: #111827;
+}
+
+/* ---- Lines ---- */
+.lines-section {
+  width: 100%;
+}
+
+.lines-section h2 {
+  font-size: 1rem;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+#lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.line-btn {
+  background: var(--surface);
+  border: 1px solid var(--card);
+  color: var(--text);
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+  width: 100%;
+}
+
+.line-btn:not([disabled]):hover {
+  background: var(--card);
+  border-color: var(--gold);
+}
+
+.line-btn.best {
+  border-color: var(--green);
+  color: var(--green);
+  font-weight: bold;
+}
+
+.line-btn[disabled] {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* ---- Result ---- */
+#result {
+  font-size: 1.15rem;
+  font-weight: bold;
+  color: var(--gold);
+  min-height: 1.5em;
+  text-align: center;
+}
+
+#result.big-win {
+  color: #ff4081;
+  font-size: 1.35rem;
+  animation: pulse 0.8s infinite alternate;
+}
+
+@keyframes pulse {
+  from {
+    text-shadow: 0 0 6px #ff4081;
+  }
+  to {
+    text-shadow: 0 0 18px #ff4081;
+  }
+}
+
+/* ---- New Game Button ---- */
+.new-game-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 0.7rem 2rem;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  transition: opacity 0.2s;
+}
+
+.new-game-btn:hover {
+  opacity: 0.85;
+}
+
+/* ---- Rules ---- */
+.rules {
+  background: var(--surface);
+  border: 1px solid var(--card);
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  font-size: 0.88rem;
+  line-height: 1.7;
+  color: #ccc;
+  width: 100%;
+}
+
+.rules h2 {
+  color: var(--gold);
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.rules ol {
+  padding-left: 1.3rem;
+}
+
+footer {
+  text-align: center;
+  padding: 1rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  border-top: 1px solid var(--card);
+  width: 100%;
+}
+
+footer a {
+  color: var(--muted);
+}
+
+@media (max-width: 480px) {
+  :root {
+    --cell-size: 72px;
+  }
+
+  header h1 {
+    font-size: 1.3rem;
+  }
+}
