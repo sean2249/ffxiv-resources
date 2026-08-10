@@ -330,34 +330,43 @@ function renderBoard(known, locked, reveal) {
     const cell = document.getElementById(`cell-${i}`);
     cell.className = "cell";
     cell.onclick = null;
-    cell.style.cursor = "default";
 
-    if (userBoard[i] !== null) {
-      cell.textContent = userBoard[i];
+    const val = userBoard[i];
+    if (val !== null) {
+      cell.textContent = val;
       cell.classList.add("filled");
     } else {
       cell.textContent = "";
     }
 
     if (locked) {
+      // 鎖盤：格子不可再操作（disabled 讓鍵盤使用者也無法聚焦）
       cell.classList.add("locked");
+      cell.disabled = true;
+      cell.setAttribute("aria-label", `${cellName(i)}${val !== null ? `：${val}` : "：空"}`);
       continue;
     }
 
-    // 未鎖：所有格可點取
+    // 未鎖：所有格可點取（button 原生支援 Enter/Space 鍵盤操作）
+    cell.disabled = false;
     cell.classList.add("clickable");
     cell.onclick = () => selectCell(i);
-    cell.style.cursor = "pointer";
 
     if (i === selectedCell) cell.classList.add("selected");
 
-    if (userBoard[i] === null) {
+    let hint = "";
+    if (val === null) {
       if (reveal && i === reveal.bestIdx) {
         cell.classList.add("reco-reveal"); // 唯一建議格
+        hint = "，建議翻開";
       } else if (known >= 1) {
         cell.classList.add("dimmed"); // 其餘空格淡化（仍可點）
       }
     }
+    cell.setAttribute(
+      "aria-label",
+      `${cellName(i)}${val !== null ? `：${val}` : "：空"}${hint}`
+    );
   }
 }
 
@@ -481,7 +490,8 @@ function renderLines(locked, expected) {
     }
     btn.innerHTML = label;
 
-    if (Math.round(expected[l]) === Math.round(maxEv)) btn.classList.add("best");
+    // 只標真正達到最高期望的線（用未四捨五入 + 極小 epsilon，避免把差 <0.5 的線誤標為推薦）
+    if (expected[l] >= maxEv - 1e-9) btn.classList.add("best");
 
     if (locked) {
       btn.onclick = () => openLineDetail(l);

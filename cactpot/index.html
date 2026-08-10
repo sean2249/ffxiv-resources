@@ -29,15 +29,15 @@
       <div class="board-wrap">
         <div id="lock-badge" style="display: none">🔒 已鎖定 — 輸入完成</div>
         <div class="board">
-          <div class="cell" id="cell-0"></div>
-          <div class="cell" id="cell-1"></div>
-          <div class="cell" id="cell-2"></div>
-          <div class="cell" id="cell-3"></div>
-          <div class="cell" id="cell-4"></div>
-          <div class="cell" id="cell-5"></div>
-          <div class="cell" id="cell-6"></div>
-          <div class="cell" id="cell-7"></div>
-          <div class="cell" id="cell-8"></div>
+          <button type="button" class="cell" id="cell-0"></button>
+          <button type="button" class="cell" id="cell-1"></button>
+          <button type="button" class="cell" id="cell-2"></button>
+          <button type="button" class="cell" id="cell-3"></button>
+          <button type="button" class="cell" id="cell-4"></button>
+          <button type="button" class="cell" id="cell-5"></button>
+          <button type="button" class="cell" id="cell-6"></button>
+          <button type="button" class="cell" id="cell-7"></button>
+          <button type="button" class="cell" id="cell-8"></button>
         </div>
 
         <!-- 數字面板 -->
@@ -122,7 +122,7 @@
         <h2>📜 如何使用求解器</h2>
         <ol>
           <li>遊戲開局會隨機翻開 <strong>1 格</strong>。點盤面上對應的位置，填入那個數字。</li>
-          <li>求解器會以<span style="color: #4caf50">高亮</span>標出<strong>建議翻開的下一格</strong>（最大化期望獎金）。到遊戲裡翻開它，把數字填回來。</li>
+          <li>求解器會以<span style="color: var(--accent-strong)">高亮</span>標出<strong>建議翻開的下一格</strong>（最大化期望獎金）。到遊戲裡翻開它，把數字填回來。</li>
           <li>重複到你翻滿 <strong>4 格</strong>（開局 1 + 再翻 3）。此時盤面<strong>鎖定</strong>。</li>
           <li>求解器推薦<strong>期望最高的連線</strong>（綠色）。點任一條線可看它的<strong>完整機率分布</strong>。</li>
           <li>回遊戲選擇該連線；可回頭把實得 MGP 記錄下來。</li>
