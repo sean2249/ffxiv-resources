@@ -1,11 +1,12 @@
 /**
- * 仙人微彩模擬器 (Mini Cactpot Simulator)
+ * 仙人微彩求解器 (Mini Cactpot Solver)
  *
- * 遊戲規則：
- * - 3x3 方格，填入數字 1~9（每個數字不重複）
- * - 初始隨機顯示 1 格，玩家再翻開 3 格，共看到 4 格
- * - 選擇一條連線（共 8 條：3 橫、3 縱、2 斜）
- * - 依照連線上三個數字之和對照獎金表
+ * 使用者把「遊戲內看到的數字」填進 3×3 盤面，工具即時算出：
+ * - 揭牌階段（已知 < 4 格）：建議下一格該翻哪裡（最大化最終期望）。
+ * - 選線階段（已知 = 4 格）：8 條線中推薦期望 MGP 最高的那條，並可探究每條線的機率分布。
+ *
+ * 遊戲規則：3×3 填 1~9 不重複；開局翻 1 格、玩家再翻 3 格（共 4 格）；
+ * 選一條連線（3 橫、3 縱、2 斜），依三數之和對照獎金表發 MGP。
  */
 
 // 獎金對照表（和 -> 獎金 MGP）
@@ -55,53 +56,39 @@ const LINE_NAMES = [
   "右上↙左下斜",
 ];
 
-/** 產生隨機排列的 1~9 */
-function generateBoard() {
-  const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-  for (let i = nums.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [nums[i], nums[j]] = [nums[j], nums[i]];
-  }
-  return nums;
-}
+const TARGET_KNOWN = 4; // 遊戲最多看到 4 格（開局 1 + 翻 3）後選線
+
+/* ============================================================
+ * 核心運算
+ * ========================================================== */
 
 /**
- * 計算每條連線在所有可能排列下的期望獎金
- * board: 已知的格子（null 表示未知）
- * 回傳長度 8 的陣列，每個元素為該連線的期望獎金
+ * 計算每條連線在所有可能排列下的期望獎金。
+ * board: 長度 9 的陣列，已知格為 1~9、未知格為 null。
+ * 回傳長度 8 的陣列，每個元素為該連線的期望獎金。
  */
 function computeExpectedPayouts(board) {
-  // 找出未知格子的索引
   const unknownIdx = [];
   const knownNums = new Set();
   for (let i = 0; i < 9; i++) {
-    if (board[i] !== null) {
-      knownNums.add(board[i]);
-    } else {
-      unknownIdx.push(i);
-    }
+    if (board[i] !== null) knownNums.add(board[i]);
+    else unknownIdx.push(i);
   }
-  const unknownNums = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(
-    (n) => !knownNums.has(n)
-  );
+  const unknownNums = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((n) => !knownNums.has(n));
 
-  // 枚舉未知格子的所有排列，累計獎金
   const totalPayout = new Array(8).fill(0);
   let permCount = 0;
 
   function permute(arr, start) {
     if (start === arr.length) {
       permCount++;
-      // 建構完整 board
       const fullBoard = [...board];
       for (let i = 0; i < unknownIdx.length; i++) {
         fullBoard[unknownIdx[i]] = arr[i];
       }
       for (let l = 0; l < LINES.length; l++) {
         const sum =
-          fullBoard[LINES[l][0]] +
-          fullBoard[LINES[l][1]] +
-          fullBoard[LINES[l][2]];
+          fullBoard[LINES[l][0]] + fullBoard[LINES[l][1]] + fullBoard[LINES[l][2]];
         totalPayout[l] += PAYOUT[sum] || 0;
       }
       return;
@@ -114,150 +101,566 @@ function computeExpectedPayouts(board) {
   }
 
   permute(unknownNums, 0);
-
   return totalPayout.map((t) => (permCount > 0 ? t / permCount : 0));
 }
 
-// ---- UI State ----
-let board = null; // 實際的 1~9 陣列
-let revealed = null; // boolean[9]
-let phase = "scratch"; // 'scratch' | 'choose' | 'result'
-let scratchCount = 0; // 已翻開格數（初始1不算）
-let chosenLine = null;
+/**
+ * 某條連線在所有可能排列下的結果分布。
+ * 回傳 { dist: {sum, payout, prob}[]（依和排序）, ev: number }。
+ */
+function computeLineDistribution(board, lineIdx) {
+  const cells = LINES[lineIdx];
+  const unknownIdx = [];
+  const knownNums = new Set();
+  for (let i = 0; i < 9; i++) {
+    if (board[i] !== null) knownNums.add(board[i]);
+    else unknownIdx.push(i);
+  }
+  const unknownNums = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((n) => !knownNums.has(n));
 
-function initGame() {
-  board = generateBoard();
-  revealed = new Array(9).fill(false);
-  phase = "scratch";
-  scratchCount = 0;
-  chosenLine = null;
+  const counts = new Map(); // sum -> count
+  let total = 0;
 
-  // 隨機顯示第一格
-  const first = Math.floor(Math.random() * 9);
-  revealed[first] = true;
+  function tally(fullBoard) {
+    const sum = fullBoard[cells[0]] + fullBoard[cells[1]] + fullBoard[cells[2]];
+    counts.set(sum, (counts.get(sum) || 0) + 1);
+    total++;
+  }
 
-  renderBoard();
-  renderHint();
-  renderLines(computeExpectedPayouts(buildUserBoard()));
-  document.getElementById("result").textContent = "";
+  function permute(arr, start) {
+    if (start === arr.length) {
+      const fullBoard = [...board];
+      for (let i = 0; i < unknownIdx.length; i++) fullBoard[unknownIdx[i]] = arr[i];
+      tally(fullBoard);
+      return;
+    }
+    for (let i = start; i < arr.length; i++) {
+      [arr[start], arr[i]] = [arr[i], arr[start]];
+      permute(arr, start + 1);
+      [arr[start], arr[i]] = [arr[i], arr[start]];
+    }
+  }
+  permute(unknownNums, 0);
+
+  const dist = [...counts.keys()]
+    .sort((a, b) => a - b)
+    .map((sum) => ({
+      sum,
+      payout: PAYOUT[sum] || 0,
+      prob: counts.get(sum) / total,
+    }));
+  const ev = dist.reduce((acc, d) => acc + d.payout * d.prob, 0);
+  return { dist, ev };
 }
 
-function renderBoard() {
+/* ---- 揭牌推薦（期望值最大化的最佳續玩遞迴，含記憶化）---- */
+
+const _memoLine = new Map(); // key=board -> 最佳線期望
+const _memoPos = new Map(); // key=board -> 最佳續玩期望
+
+function countKnown(board) {
+  let n = 0;
+  for (let i = 0; i < 9; i++) if (board[i] !== null) n++;
+  return n;
+}
+
+function maxLineEV(board) {
+  const key = board.join(",");
+  if (_memoLine.has(key)) return _memoLine.get(key);
+  const v = Math.max(...computeExpectedPayouts(board));
+  _memoLine.set(key, v);
+  return v;
+}
+
+function positionValue(board) {
+  if (countKnown(board) >= TARGET_KNOWN) return maxLineEV(board);
+  const key = board.join(",");
+  if (_memoPos.has(key)) return _memoPos.get(key);
+
+  const used = new Set(board.filter((x) => x !== null));
+  const remaining = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((n) => !used.has(n));
+  const unknownIdx = [];
+  for (let i = 0; i < 9; i++) if (board[i] === null) unknownIdx.push(i);
+
+  let best = -1;
+  for (const c of unknownIdx) {
+    let sum = 0;
+    for (const v of remaining) {
+      const b = [...board];
+      b[c] = v;
+      sum += positionValue(b);
+    }
+    best = Math.max(best, sum / remaining.length);
+  }
+  _memoPos.set(key, best);
+  return best;
+}
+
+/**
+ * 對盤面上每個未知格算「翻它之後的最佳續玩期望」，回傳最佳格索引。
+ * 回傳 { bestIdx, values: Map<idx, ev> }。
+ */
+function recommendReveal(board) {
+  const used = new Set(board.filter((x) => x !== null));
+  const remaining = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((n) => !used.has(n));
+  const unknownIdx = [];
+  for (let i = 0; i < 9; i++) if (board[i] === null) unknownIdx.push(i);
+
+  const values = new Map();
+  let bestIdx = -1;
+  let bestVal = -1;
+  for (const c of unknownIdx) {
+    let sum = 0;
+    for (const v of remaining) {
+      const b = [...board];
+      b[c] = v;
+      sum += positionValue(b);
+    }
+    const ev = remaining.length > 0 ? sum / remaining.length : 0;
+    values.set(c, ev);
+    if (ev > bestVal) {
+      bestVal = ev;
+      bestIdx = c;
+    }
+  }
+  return { bestIdx, values };
+}
+
+/* ============================================================
+ * UI 狀態
+ * ========================================================== */
+
+let userBoard = new Array(9).fill(null); // 使用者填入的 1~9，未填為 null
+let selectedCell = null; // 目前選取要填數字的格子索引
+
+const RECORDS_KEY = "cactpot.records";
+
+/* ---- 輸入處理 ---- */
+
+function selectCell(i) {
+  if (countKnown(userBoard) >= TARGET_KNOWN) return; // 鎖盤後不可選
+  selectedCell = i;
+  render();
+}
+
+function setCellValue(i, n) {
+  // 不可與其他格重複
+  for (let k = 0; k < 9; k++) {
+    if (k !== i && userBoard[k] === n) return;
+  }
+  // 4 格上限（僅限「原為空格」才受限；覆寫已填格不算新增）
+  if (userBoard[i] === null && countKnown(userBoard) >= TARGET_KNOWN) {
+    flashHint("遊戲最多看到 4 格，如要修改請先清除其他格。");
+    return;
+  }
+  userBoard[i] = n;
+
+  // 自動把選取移到下一個空格
+  if (countKnown(userBoard) < TARGET_KNOWN) {
+    const next = userBoard.findIndex((v) => v === null);
+    selectedCell = next === -1 ? null : next;
+  } else {
+    selectedCell = null; // 鎖盤
+  }
+  render();
+}
+
+function clearCell(i) {
+  userBoard[i] = null;
+  selectedCell = i;
+  render();
+}
+
+function clearAll() {
+  userBoard = new Array(9).fill(null);
+  selectedCell = null;
+  closeLineDetail();
+  render();
+}
+
+let _hintTimer = null;
+function flashHint(msg) {
+  const el = document.getElementById("reco");
+  if (!el) return;
+  const prev = el.innerHTML;
+  el.innerHTML = `<span class="reco-warn">⚠️ ${msg}</span>`;
+  clearTimeout(_hintTimer);
+  _hintTimer = setTimeout(() => render(), 2200);
+}
+
+/* ---- 鍵盤 ---- */
+
+document.addEventListener("keydown", (e) => {
+  if (selectedCell === null) return;
+  if (countKnown(userBoard) >= TARGET_KNOWN && userBoard[selectedCell] === null) return;
+  if (e.key >= "1" && e.key <= "9") {
+    setCellValue(selectedCell, parseInt(e.key, 10));
+  } else if (e.key === "Backspace" || e.key === "Delete") {
+    clearCell(selectedCell);
+  }
+});
+
+/* ============================================================
+ * 渲染
+ * ========================================================== */
+
+function render() {
+  const known = countKnown(userBoard);
+  const locked = known >= TARGET_KNOWN;
+
+  // 揭牌建議（僅 1~3 格時需要）
+  let reveal = null;
+  if (known >= 1 && known < TARGET_KNOWN) {
+    reveal = recommendReveal(userBoard);
+  }
+
+  // 期望值（1 格以上才算；0 格時不需要）
+  let expected = null;
+  if (known >= 1) expected = computeExpectedPayouts(userBoard);
+
+  renderBoard(known, locked, reveal);
+  renderNumpad(locked);
+  renderReco(known, locked, reveal, expected);
+  renderLines(locked, expected);
+  renderLockUI(locked, expected);
+}
+
+function renderBoard(known, locked, reveal) {
   for (let i = 0; i < 9; i++) {
     const cell = document.getElementById(`cell-${i}`);
-    if (revealed[i]) {
-      cell.textContent = board[i];
-      cell.classList.add("revealed");
-      cell.classList.remove("hidden-cell");
-    } else {
-      cell.textContent = "？";
-      cell.classList.remove("revealed");
-      cell.classList.add("hidden-cell");
-    }
-
-    // 事件綁定由 renderBoard 控制
+    cell.className = "cell";
     cell.onclick = null;
-    if (phase === "scratch" && !revealed[i]) {
-      cell.onclick = () => scratchCell(i);
-      cell.style.cursor = "pointer";
+
+    const val = userBoard[i];
+    if (val !== null) {
+      cell.textContent = val;
+      cell.classList.add("filled");
     } else {
-      cell.style.cursor = "default";
+      cell.textContent = "";
     }
+
+    if (locked) {
+      // 鎖盤：格子不可再操作（disabled 讓鍵盤使用者也無法聚焦）
+      cell.classList.add("locked");
+      cell.disabled = true;
+      cell.setAttribute("aria-label", `${cellName(i)}${val !== null ? `：${val}` : "：空"}`);
+      continue;
+    }
+
+    // 未鎖：所有格可點取（button 原生支援 Enter/Space 鍵盤操作）
+    cell.disabled = false;
+    cell.classList.add("clickable");
+    cell.onclick = () => selectCell(i);
+
+    if (i === selectedCell) cell.classList.add("selected");
+
+    let hint = "";
+    if (val === null) {
+      if (reveal && i === reveal.bestIdx) {
+        cell.classList.add("reco-reveal"); // 唯一建議格
+        hint = "，建議翻開";
+      } else if (known >= 1) {
+        cell.classList.add("dimmed"); // 其餘空格淡化（仍可點）
+      }
+    }
+    cell.setAttribute(
+      "aria-label",
+      `${cellName(i)}${val !== null ? `：${val}` : "：空"}${hint}`
+    );
   }
 }
 
-function scratchCell(i) {
-  if (phase !== "scratch" || revealed[i]) return;
-  revealed[i] = true;
-  scratchCount++;
-  if (scratchCount >= 3) {
-    phase = "choose";
+function renderNumpad(locked) {
+  const pad = document.getElementById("numpad");
+  pad.innerHTML = "";
+  if (locked) {
+    pad.style.display = "none";
+    return;
   }
-  renderBoard();
-  renderHint();
-  renderLines(computeExpectedPayouts(buildUserBoard()));
+  pad.style.display = "";
+
+  if (selectedCell === null) {
+    const hint = document.createElement("div");
+    hint.className = "numpad-hint";
+    hint.textContent = "先點一格，再選數字填入";
+    pad.appendChild(hint);
+    return;
+  }
+
+  const usedElsewhere = new Set();
+  for (let k = 0; k < 9; k++) {
+    if (k !== selectedCell && userBoard[k] !== null) usedElsewhere.add(userBoard[k]);
+  }
+
+  const row = document.createElement("div");
+  row.className = "numpad-row";
+  for (let n = 1; n <= 9; n++) {
+    const btn = document.createElement("button");
+    btn.className = "num-btn";
+    btn.textContent = n;
+    if (usedElsewhere.has(n)) {
+      btn.disabled = true;
+    } else {
+      btn.onclick = () => setCellValue(selectedCell, n);
+    }
+    if (userBoard[selectedCell] === n) btn.classList.add("current");
+    row.appendChild(btn);
+  }
+  pad.appendChild(row);
+
+  if (userBoard[selectedCell] !== null) {
+    const clr = document.createElement("button");
+    clr.className = "num-clear";
+    clr.textContent = "清除此格";
+    clr.onclick = () => clearCell(selectedCell);
+    pad.appendChild(clr);
+  }
 }
 
-/** 建構已知 board（未翻開為 null） */
-function buildUserBoard() {
-  return board.map((v, i) => (revealed[i] ? v : null));
-}
+function renderReco(known, locked, reveal, expected) {
+  const el = document.getElementById("reco");
 
-function renderHint() {
-  const hint = document.getElementById("hint");
-  if (phase === "scratch") {
-    const left = 3 - scratchCount;
-    hint.textContent = `請翻開 ${left} 個格子`;
+  if (known === 0) {
+    el.className = "reco reco-input";
+    el.innerHTML =
+      "點選遊戲<strong>開局已翻開的那一格</strong>，並填入它的數字，開始求解。";
+    return;
+  }
+
+  if (!locked) {
+    const left = TARGET_KNOWN - known;
+    const pos = reveal ? cellName(reveal.bestIdx) : "";
+    el.className = "reco reco-reveal-hint";
+    el.innerHTML =
+      `已知 ${known} 格。建議翻開<strong>高亮的「${pos}」</strong>，` +
+      `把遊戲裡對應位置的數字填進去（還需 ${left} 格）。`;
+    return;
+  }
+
+  // 鎖盤：選線敘述
+  const best = bestLineInfo(expected);
+  el.className = "reco reco-final";
+  const dist = computeLineDistribution(userBoard, best.idx);
+  const certain = dist.dist.length === 1;
+
+  if (certain) {
+    el.innerHTML =
+      `建議選擇 <strong>${LINE_NAMES[best.idx]}</strong>：此線三格已翻開，` +
+      `<strong>確定可得 ${dist.dist[0].payout.toLocaleString()} MGP</strong>。`;
   } else {
-    hint.textContent = "請選擇一條連線";
+    let s =
+      `建議選擇 <strong>${LINE_NAMES[best.idx]}</strong>：平均每把約可獲得 ` +
+      `<strong>${Math.round(best.ev).toLocaleString()} MGP</strong>，是 8 條線中期望最高的`;
+    if (best.secondIdx !== -1) {
+      s += `（次高為 ${LINE_NAMES[best.secondIdx]} ${Math.round(
+        best.secondEv
+      ).toLocaleString()} MGP）`;
+    }
+    s += "。點任一條線可看完整機率分布。";
+    el.innerHTML = s;
   }
 }
 
-function renderLines(expectedPayouts) {
+function renderLines(locked, expected) {
   const container = document.getElementById("lines");
   container.innerHTML = "";
+  if (!expected) {
+    container.innerHTML =
+      '<div class="lines-empty">填入第一格後，這裡會列出 8 條連線的期望獎金。</div>';
+    return;
+  }
+
+  const maxEv = Math.max(...expected);
 
   LINES.forEach((line, l) => {
     const btn = document.createElement("button");
     btn.className = "line-btn";
 
-    // 計算已知數字之和（若三格皆已翻開）
-    const vals = line.map((idx) => (revealed[idx] ? board[idx] : null));
+    const vals = line.map((idx) => userBoard[idx]);
     const allKnown = vals.every((v) => v !== null);
     const sum = allKnown ? vals.reduce((a, b) => a + b, 0) : null;
     const payout = sum !== null ? PAYOUT[sum] : null;
 
-    let label = LINE_NAMES[l];
-    if (expectedPayouts) {
-      label += `　期望：${Math.round(expectedPayouts[l]).toLocaleString()} MGP`;
-    }
+    let label = `<span class="line-name">${LINE_NAMES[l]}</span>`;
+    label += `<span class="line-ev">期望 ${Math.round(
+      expected[l]
+    ).toLocaleString()} MGP</span>`;
     if (payout !== null) {
-      label += `　（確定獎金：${payout.toLocaleString()} MGP）`;
+      label += `<span class="line-certain">確定 ${payout.toLocaleString()} MGP</span>`;
     }
-    btn.textContent = label;
+    btn.innerHTML = label;
 
-    if (phase === "choose") {
-      btn.onclick = () => chooseLine(l);
+    // 只標真正達到最高期望的線（用未四捨五入 + 極小 epsilon，避免把差 <0.5 的線誤標為推薦）
+    if (expected[l] >= maxEv - 1e-9) btn.classList.add("best");
+
+    if (locked) {
+      btn.onclick = () => openLineDetail(l);
       btn.style.cursor = "pointer";
+      btn.title = "點看機率分布";
     } else {
       btn.disabled = true;
-    }
-
-    // 標示推薦連線
-    if (
-      expectedPayouts &&
-      Math.round(expectedPayouts[l]) ===
-        Math.round(Math.max(...expectedPayouts))
-    ) {
-      btn.classList.add("best");
     }
 
     container.appendChild(btn);
   });
 }
 
-function chooseLine(l) {
-  if (phase !== "choose") return;
-  chosenLine = l;
-  phase = "result";
+function renderLockUI(locked, expected) {
+  const badge = document.getElementById("lock-badge");
+  const report = document.getElementById("report");
+  const clearBtn = document.getElementById("clear-all");
 
-  // 顯示所有格子
-  revealed = new Array(9).fill(true);
-  renderBoard();
+  badge.style.display = locked ? "" : "none";
+  report.style.display = locked ? "" : "none";
+  clearBtn.style.display = countKnown(userBoard) > 0 ? "" : "none";
 
-  const line = LINES[l];
-  const sum = line.map((i) => board[i]).reduce((a, b) => a + b, 0);
-  const payout = PAYOUT[sum] || 0;
-
-  const result = document.getElementById("result");
-  result.textContent = `連線：${LINE_NAMES[l]}，數字和：${sum}，獎金：${payout.toLocaleString()} MGP 🎉`;
-  result.className = payout >= 1000 ? "result big-win" : "result";
-
-  // 高亮選中連線的格子
-  LINES[l].forEach((i) => {
-    document.getElementById(`cell-${i}`).classList.add("chosen");
-  });
-
-  renderLines(null);
-  document.getElementById("hint").textContent = "遊戲結束，點擊「新遊戲」再玩一次！";
+  if (locked) {
+    // 推薦線的三格綠色高亮
+    const best = bestLineInfo(expected);
+    LINES[best.idx].forEach((i) =>
+      document.getElementById(`cell-${i}`).classList.add("chosen")
+    );
+    // 回報表單：線別 select 預設帶入推薦線
+    const sel = document.getElementById("report-line");
+    if (sel && sel.dataset.filled !== "1") {
+      sel.innerHTML = LINE_NAMES.map(
+        (nm, l) => `<option value="${l}">${nm}</option>`
+      ).join("");
+      sel.value = String(best.idx);
+      sel.dataset.filled = "1";
+    }
+    updateRecordCount();
+  } else {
+    const sel = document.getElementById("report-line");
+    if (sel) sel.dataset.filled = "0";
+    const mgp = document.getElementById("report-mgp");
+    if (mgp) mgp.value = "";
+    const done = document.getElementById("report-done");
+    if (done) done.textContent = "";
+  }
 }
+
+/* ---- 輔助 ---- */
+
+function cellName(i) {
+  const rows = ["上", "中", "下"];
+  const cols = ["左", "中", "右"];
+  if (i === 4) return "中心格";
+  return `${rows[Math.floor(i / 3)]}${cols[i % 3]}格`;
+}
+
+function bestLineInfo(expected) {
+  let idx = 0;
+  for (let l = 1; l < 8; l++) if (expected[l] > expected[idx]) idx = l;
+  let secondIdx = -1;
+  for (let l = 0; l < 8; l++) {
+    if (l === idx) continue;
+    if (secondIdx === -1 || expected[l] > expected[secondIdx]) secondIdx = l;
+  }
+  return {
+    idx,
+    ev: expected[idx],
+    secondIdx,
+    secondEv: secondIdx === -1 ? 0 : expected[secondIdx],
+  };
+}
+
+/* ============================================================
+ * 階段四：連線機率明細（中央 overlay）
+ * ========================================================== */
+
+function openLineDetail(lineIdx) {
+  const overlay = document.getElementById("line-detail");
+  const title = document.getElementById("detail-title");
+  const body = document.getElementById("detail-body");
+
+  const { dist, ev } = computeLineDistribution(userBoard, lineIdx);
+  title.textContent = LINE_NAMES[lineIdx];
+
+  const maxProb = Math.max(...dist.map((d) => d.prob));
+  let html = `<p class="detail-ev">期望值：<strong>${Math.round(
+    ev
+  ).toLocaleString()} MGP</strong></p>`;
+  html += '<table class="detail-table"><thead><tr>';
+  html += "<th>三數和</th><th>獎金 MGP</th><th>機率</th></tr></thead><tbody>";
+  dist.forEach((d) => {
+    const pct = (d.prob * 100).toFixed(1);
+    const w = maxProb > 0 ? (d.prob / maxProb) * 100 : 0;
+    const big = d.payout >= 1000 ? " detail-big" : "";
+    html += `<tr class="${big.trim()}">`;
+    html += `<td>${d.sum}</td>`;
+    html += `<td>${d.payout.toLocaleString()}</td>`;
+    html += `<td><span class="prob-wrap"><span class="prob-bar" style="width:${w}%"></span><span class="prob-pct">${pct}%</span></span></td>`;
+    html += "</tr>";
+  });
+  html += "</tbody></table>";
+  body.innerHTML = html;
+
+  overlay.style.display = "flex";
+}
+
+function closeLineDetail() {
+  const overlay = document.getElementById("line-detail");
+  if (overlay) overlay.style.display = "none";
+}
+
+/* ============================================================
+ * 階段五：回報實得（localStorage，預留統計空間）
+ * ========================================================== */
+
+function getRecords() {
+  try {
+    return JSON.parse(localStorage.getItem(RECORDS_KEY) || "[]");
+  } catch (e) {
+    return [];
+  }
+}
+
+function recordResult(entry) {
+  const records = getRecords();
+  records.push(entry);
+  try {
+    localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
+  } catch (e) {
+    /* localStorage 不可用時靜默略過 */
+  }
+  return records.length;
+}
+
+function submitReport() {
+  const sel = document.getElementById("report-line");
+  const mgp = document.getElementById("report-mgp");
+  const done = document.getElementById("report-done");
+
+  const chosenLine = sel ? parseInt(sel.value, 10) : -1;
+  const actualMGP = mgp && mgp.value !== "" ? parseInt(mgp.value, 10) : null;
+  if (actualMGP === null || isNaN(actualMGP)) {
+    if (done) done.textContent = "請先填入實得 MGP。";
+    return;
+  }
+
+  const expected = computeExpectedPayouts(userBoard);
+  const best = bestLineInfo(expected);
+  const entry = {
+    ts: new Date().toISOString(),
+    board: [...userBoard],
+    recommendedLine: best.idx,
+    recommendedEV: Math.round(best.ev),
+    chosenLine,
+    actualMGP,
+  };
+  const n = recordResult(entry);
+  if (done) done.textContent = `已記錄 ✔（本機共 ${n} 筆）`;
+  if (mgp) mgp.value = "";
+}
+
+function updateRecordCount() {
+  const el = document.getElementById("record-count");
+  if (el) {
+    const n = getRecords().length;
+    el.textContent = n > 0 ? `本機已記錄 ${n} 筆` : "";
+  }
+}
+
+// 初始化
+render();
