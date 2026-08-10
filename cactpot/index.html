@@ -3,30 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>仙人微彩模擬器 | FFXIV 資源站</title>
+    <title>仙人微彩求解器 | FFXIV 資源站</title>
     <meta
       name="description"
-      content="Final Fantasy XIV 仙人微彩（Mini Cactpot）模擬器，顯示期望獎金、推薦連線，繁體中文介面。"
+      content="Final Fantasy XIV 仙人微彩（Mini Cactpot）求解器：輸入遊戲內看到的數字，即時告訴你下一格該翻哪裡、最後該選哪條連線最好，並顯示每條線的期望獎金與機率分布。繁體中文介面。"
     />
     <link rel="stylesheet" href="cactpot.css" />
   </head>
   <body>
     <header>
-      <h1>🌵 仙人微彩模擬器</h1>
-      <p>Final Fantasy XIV &mdash; Mini Cactpot Simulator</p>
+      <h1>🌵 仙人微彩求解器</h1>
+      <p>Final Fantasy XIV &mdash; Mini Cactpot Solver</p>
       <nav>
         <a href="../index.html">首頁</a>
-        <a href="#rules">遊戲規則</a>
+        <a href="#how">使用說明</a>
         <a href="#payout">獎金表</a>
       </nav>
     </header>
 
     <main>
-      <!-- 提示 -->
-      <div id="hint" aria-live="polite">載入中…</div>
+      <!-- 推薦／提示橫幅 -->
+      <div id="reco" class="reco" aria-live="polite">載入中…</div>
 
-      <!-- 3×3 方格 -->
+      <!-- 3×3 盤面 -->
       <div class="board-wrap">
+        <div id="lock-badge" style="display: none">🔒 已鎖定 — 輸入完成</div>
         <div class="board">
           <div class="cell" id="cell-0"></div>
           <div class="cell" id="cell-1"></div>
@@ -38,16 +39,40 @@
           <div class="cell" id="cell-7"></div>
           <div class="cell" id="cell-8"></div>
         </div>
-        <button class="new-game-btn" onclick="initGame()">新遊戲 🎲</button>
+
+        <!-- 數字面板 -->
+        <div id="numpad" class="numpad"></div>
+
+        <button class="clear-all-btn" id="clear-all" onclick="clearAll()" style="display: none">
+          🔄 清除重填
+        </button>
       </div>
 
-      <!-- 結果 -->
-      <div id="result"></div>
-
-      <!-- 連線選擇 -->
+      <!-- 連線與期望獎金 -->
       <div class="lines-section">
-        <h2>連線與期望獎金（綠色 = 推薦）</h2>
+        <h2>連線期望獎金（綠色 = 推薦；鎖盤後可點看機率）</h2>
         <div id="lines"></div>
+      </div>
+
+      <!-- 回報實際結果 -->
+      <div id="report" class="report" style="display: none">
+        <h2>📊 回報實際結果</h2>
+        <p class="report-desc">
+          玩完後把你實際選的連線與領到的 MGP 記下來（存在本機瀏覽器，僅你可見），未來可用於統計推薦命中率與平均實得。
+        </p>
+        <div class="report-form">
+          <label>
+            實際選的連線
+            <select id="report-line"></select>
+          </label>
+          <label>
+            實得 MGP
+            <input id="report-mgp" type="number" min="0" step="1" placeholder="例如 360" />
+          </label>
+          <button class="report-submit" onclick="submitReport()">送出紀錄</button>
+        </div>
+        <div id="report-done" class="report-done" aria-live="polite"></div>
+        <div id="record-count" class="record-count"></div>
       </div>
 
       <!-- 獎金表 -->
@@ -92,26 +117,32 @@
         </div>
       </div>
 
-      <!-- 規則說明 -->
-      <div class="rules" id="rules">
-        <h2>📜 遊戲規則</h2>
+      <!-- 使用說明 -->
+      <div class="rules" id="how">
+        <h2>📜 如何使用求解器</h2>
         <ol>
-          <li>3×3 方格中隨機填入數字 1〜9，每個數字僅出現一次。</li>
-          <li>遊戲開始時，隨機翻開 <strong>1 格</strong>。</li>
-          <li>玩家再依序點擊 <strong>3 格</strong>（共看見 4 格）。</li>
-          <li>
-            翻完後，從 8 條連線中選擇一條：
-            <br />・3 條橫列、3 條縱列、2 條對角線。
-          </li>
-          <li>依所選連線上三個數字之和，對照獎金表發放 MGP 獎勵。</li>
+          <li>遊戲開局會隨機翻開 <strong>1 格</strong>。點盤面上對應的位置，填入那個數字。</li>
+          <li>求解器會以<span style="color: #4caf50">高亮</span>標出<strong>建議翻開的下一格</strong>（最大化期望獎金）。到遊戲裡翻開它，把數字填回來。</li>
+          <li>重複到你翻滿 <strong>4 格</strong>（開局 1 + 再翻 3）。此時盤面<strong>鎖定</strong>。</li>
+          <li>求解器推薦<strong>期望最高的連線</strong>（綠色）。點任一條線可看它的<strong>完整機率分布</strong>。</li>
+          <li>回遊戲選擇該連線；可回頭把實得 MGP 記錄下來。</li>
         </ol>
         <br />
         <p>
-          💡 <strong>模擬器功能：</strong>每翻開一格後，系統會自動計算每條連線在所有可能排列下的
-          <strong>期望獎金</strong>，並以<span style="color: #4caf50">綠色</span>標示期望值最高的推薦連線。
+          💡 求解器對「未翻開格」枚舉所有可能排列，算出每條連線的<strong>期望獎金</strong>，
+          並在揭牌階段用最佳續玩遞迴推薦<strong>下一格該翻哪裡</strong>。純本機運算，不上傳資料。
         </p>
       </div>
     </main>
+
+    <!-- 階段四：連線機率明細（中央 overlay） -->
+    <div id="line-detail" class="overlay" style="display: none" onclick="if(event.target===this)closeLineDetail()">
+      <div class="detail-card">
+        <button class="detail-close" onclick="closeLineDetail()" aria-label="關閉">✕</button>
+        <h3 id="detail-title">連線</h3>
+        <div id="detail-body"></div>
+      </div>
+    </div>
 
     <footer>
       <p>
@@ -136,9 +167,6 @@
           btn.textContent = "▼ 展開獎金表";
         }
       }
-
-      // 初始化遊戲
-      initGame();
     </script>
   </body>
 </html>
