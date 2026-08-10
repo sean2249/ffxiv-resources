@@ -1,0 +1,50 @@
+name: Deploy to gh-pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-pages-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stage whitelisted files
+        run: |
+          set -euo pipefail
+          ALLOWLIST=".github/pages-allowlist.txt"
+          STAGE="$RUNNER_TEMP/site"
+          rm -rf "$STAGE"; mkdir -p "$STAGE"
+          while IFS= read -r raw || [ -n "$raw" ]; do
+            line="${raw%%#*}"
+            line="$(echo "$line" | xargs || true)"
+            [ -z "$line" ] && continue
+            if [ ! -e "$line" ]; then
+              echo "::error::Whitelisted path not found: $line"; exit 1
+            fi
+            cp -r --parents "$line" "$STAGE"/
+          done < "$ALLOWLIST"
+          touch "$STAGE/.nojekyll"
+          echo "Staged:"; find "$STAGE" -type f | sort
+
+      - name: Publish to gh-pages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          STAGE="$RUNNER_TEMP/site"; cd "$STAGE"
+          git init -q; git checkout -q -b gh-pages
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Deploy from ${GITHUB_SHA} [skip ci]"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
