@@ -23,10 +23,16 @@ jobs:
           set -euo pipefail
           ALLOWLIST=".github/pages-allowlist.txt"
           STAGE="$RUNNER_TEMP/site"
+          if [ ! -f "$ALLOWLIST" ]; then
+            echo "::error::Allowlist file not found: $ALLOWLIST"; exit 1
+          fi
           rm -rf "$STAGE"; mkdir -p "$STAGE"
+          raw=""
           while IFS= read -r raw || [ -n "$raw" ]; do
             line="${raw%%#*}"
-            line="$(echo "$line" | xargs || true)"
+            # trim surrounding whitespace (whitespace-safe; preserves inner spaces and leading '-')
+            line="${line#"${line%%[![:space:]]*}"}"
+            line="${line%"${line##*[![:space:]]}"}"
             [ -z "$line" ] && continue
             if [ ! -e "$line" ]; then
               echo "::error::Whitelisted path not found: $line"; exit 1
