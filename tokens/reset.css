@@ -1,0 +1,5 @@
+/* Reset — carried over from the upstream source (`cactpot/cactpot.css` opens with it).
+   border-box everywhere is load-bearing: components are inline-styled, so padding must
+   never widen a box that was sized to fill its parent. */
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; }

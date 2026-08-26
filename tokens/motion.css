@@ -1,0 +1,46 @@
+/* Motion — deliberately restrained. The source explicitly removed all
+   breathing/pulse animations. Ease-out only; no bounce, no loops, no attention-seeking. */
+:root{
+  --ease-out: ease-out; /* @kind other */
+  --ease-emphasis: cubic-bezier(0.22, 1, 0.36, 1); /* @kind other */
+
+  --duration-fast: 0.15s; /* @kind other */
+  --duration-base: 0.18s; /* @kind other */
+  --duration-slow: 0.2s; /* @kind other */
+
+  --transition-control: border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+  --transition-cell: border-color var(--duration-base) var(--ease-emphasis),
+    background var(--duration-base) var(--ease-emphasis),
+    box-shadow var(--duration-base) var(--ease-emphasis),
+    transform var(--duration-base) var(--ease-emphasis);
+
+  --duration-press: 0.09s; /* @kind other */
+
+  /* Hover motion (pointer devices only) */
+  --lift-sm: translateY(-1px); /* @kind other */
+  --lift-md: translateY(-2px); /* @kind other */
+
+  /* Touch press — every tappable surface shrinks slightly and tints.
+     Hover is suppressed on touch devices so nothing stays "stuck" after a tap. */
+  --press-scale: 0.97; /* @kind other */
+
+  /* Screen transition for the app shell */
+  --screen-in: screen-in 0.22s var(--ease-emphasis) both; /* @kind other */
+}
+/* The one looping animation in the system: the recommended line arrow, once lines
+   become selectable. Slow and low-contrast — an invitation, not an alarm. */
+@keyframes arrow-pulse { 0% { opacity: 0.7; transform: scale(1) } 60%, 100% { opacity: 0; transform: scale(1.5) } }
+@keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
+@keyframes pop-in { from { opacity: 0; transform: scale(0.94) } to { opacity: 1; transform: none } }
+@keyframes screen-in { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+@media (prefers-reduced-motion: reduce){
+  :root{
+    --press-scale: 1; /* @kind other */
+    --lift-sm: none; /* @kind other */
+    --lift-md: none; /* @kind other */
+    --screen-in: none; /* @kind other */
+  }
+  [style*="arrow-pulse"]{ animation: none !important; opacity: 0 !important }
+}
