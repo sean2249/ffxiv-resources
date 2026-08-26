@@ -1,4 +1,4 @@
-const { CactpotBoard, NumPad, DetailOverlay, ProbBar, Icon } = window.FFXIVDesignSystem_f1941e;
+const { CactpotBoard, NumPad, DetailOverlay, ProbBar } = window.FFXIVDesignSystem_f1941e;
 const S = window.CactpotSolver;
 
 const TOTAL_REVEALS = 4; // the game reveals one, you choose three more
