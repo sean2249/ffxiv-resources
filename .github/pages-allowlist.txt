@@ -2,7 +2,19 @@
 # 每行一個相對 repo 根目錄的檔案或資料夾路徑。
 # 只有列在這裡的路徑才會被佈署到 gh-pages；其餘（含 README.md）不會外流。
 # 以 # 開頭為註解，空行忽略。
+# 支援檔案或資料夾路徑（資料夾以 cp -r --parents 整包佈署）。
+
+# 根入口：導向 PWA 的跳轉頁
 index.html
+
+# PWA（主要入口）— ui_kits/ffxiv-pwa/app.html 及其相依
+ui_kits/ffxiv-pwa
+styles.css
+_ds_bundle.js
+tokens
+assets
+
+# 舊版仙人微彩求解器（保留可直接連結，首頁已不再連向它）
 cactpot/index.html
 cactpot/cactpot.css
 cactpot/cactpot.js
