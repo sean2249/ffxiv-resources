@@ -1,0 +1,38 @@
+/* Spacing, sizing and radii — rem-based, matching the source's authored values. */
+:root{
+  --space-1: 0.3rem;
+  --space-2: 0.4rem;
+  --space-3: 0.6rem;
+  --space-4: 0.85rem;
+  --space-5: 1rem;
+  --space-6: 1.4rem;
+  --space-7: 1.5rem;
+  --space-8: 2rem;
+  --space-9: 2.5rem;
+
+  /* Radii */
+  --radius-sm: 8px;   /* inputs, small buttons */
+  --radius-md: 10px;  /* numpad keys, line rows, primary buttons */
+  --radius: 12px;     /* cards, board cells, panels */
+  --radius-pill: 999px;
+
+  /* Component sizing */
+  --cell-size: 90px;
+  --cell-size-compact: 72px;
+  --board-gap: 10px;
+  --numkey-size: 44px;
+  --numkey-size-compact: 34px;
+  --tabbar-height: 56px;
+  --tap-min: 44px;   /* minimum touch target, never smaller */
+  /* The line-arrow ring. The gutter IS the touch target, so it equals --tap-min;
+     the arrow glyph inside stays 20px, which is what keeps the ring visually light. */
+  --arrow-gutter: 44px;
+
+  /* Layout */
+  --content-max: 760px;
+  --content-max-wide: 800px;
+  --page-pad: 1rem;
+}
+@media (max-width:480px){
+  :root{ --cell-size: var(--cell-size-compact); }
+}

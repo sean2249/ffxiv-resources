@@ -1,0 +1,38 @@
+/* Typography — Noto Sans TC (Google Fonts), a humanist sans with a complete
+   繁體中文 glyph set. Latin and Chinese come from the same superfamily, so mixed
+   運算 / MGP strings stay optically even. OS faces remain as fallbacks. */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+:root{
+  --font-sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --font-body: var(--font-sans);
+  --font-display: var(--font-sans);
+  --font-numeric: var(--font-sans);
+
+  /* Scale (rem, as authored in source) */
+  --text-hero: 2.2rem;    /* home h1 */
+  --text-title: 1.75rem;  /* tool page h1 */
+  --text-h2: 1.2rem;      /* overlay title / section title */
+  --text-lead: 1.02rem;   /* recommendation banner */
+  --text-md: 1rem;        /* card h2, panel h2 */
+  --text-base: 0.9rem;    /* controls, line rows */
+  --text-sm: 0.88rem;     /* body copy in panels */
+  --text-xs: 0.82rem;     /* meta, captions */
+  --text-2xs: 0.78rem;    /* footer, probability % */
+  --text-micro: 0.7rem;   /* badge */
+
+  --text-cell: 2rem;      /* board cell digit */
+  --text-numkey: 1.1rem;  /* numpad key */
+
+  --weight-regular: 400;
+  --weight-medium: 600;
+  --weight-bold: 700;
+  --weight-black: 900;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+  --leading-loose: 1.75;
+
+  --tracking-tight: -0.01em;
+  --tracking-wide: 0.02em;
+}

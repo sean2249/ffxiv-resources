@@ -1,0 +1,64 @@
+/* Colors — brand palette (2026 refresh).
+   Base palette supplied by the team:
+     Deep Mocha #483d3f · Bronze Spice #ca5310 · Yellow Green #85cb33
+     Lilac Ash #ad9baa · Pacific Blue #7fb7be
+   Neutrals are tints of Lilac Ash; every hue below is either a palette colour or a
+   tint/shade of one. Semantic meanings carry over from the original solver:
+   green = the solver's recommendation, bronze = a number you own. */
+:root{
+  /* --- Base palette --- */
+  --mocha: #483d3f;
+  --bronze: #ca5310;
+  --leaf: #85cb33;
+  --lilac: #ad9baa;
+  --pacific: #7fb7be;
+
+  /* --- Canvas / surfaces (Lilac Ash tints) --- */
+  --bg: #f7f5f6;
+  --surface: #fdfcfd;
+  --surface-2: #f0edef;
+
+  /* --- Borders --- */
+  --border: #e2dce0;
+  --border-strong: #c9c0c7;
+
+  /* --- Text --- */
+  --text: #483d3f;
+  --muted: #7a6e74;
+  --placeholder: #ad9baa;
+
+  /* --- Accent: green == "the solver recommends this" --- */
+  --accent: #85cb33;
+  --accent-strong: #4f7d1c;   /* text / hover — passes contrast on light surfaces */
+  --accent-soft: #eef8e0;
+  --accent-ring: rgba(133, 203, 51, 0.28);
+  --on-accent: #23330d;
+
+  /* --- Bronze == "a number you entered / a confirmed value" --- */
+  --gold: #ca5310;
+  --gold-soft: #fbeade;
+  --gold-border: #f0b990;
+
+  /* --- Info: Pacific Blue == neutral data, non-recommendation --- */
+  --info: #7fb7be;
+  --info-strong: #3f7d85;
+  --info-soft: #e8f3f4;
+
+  /* --- Danger: destructive only. Derived (deep rust) — the palette has no
+         destructive colour, and Bronze Spice is already load-bearing. --- */
+  --danger: #8f2f14;
+  --danger-soft: #fbe9e3;
+
+  /* Scrim */
+  --scrim: rgba(72, 61, 63, 0.38);
+
+  /* --- Semantic aliases --- */
+  --text-body: var(--text);
+  --text-muted: var(--muted);
+  --text-link: var(--accent-strong);
+  --surface-card: var(--surface);
+  --surface-app: var(--bg);
+  --surface-sunken: var(--surface-2);
+  --border-card: var(--border);
+  --border-control: var(--border-strong);
+}
